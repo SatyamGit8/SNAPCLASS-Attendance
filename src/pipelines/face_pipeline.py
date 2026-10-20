@@ -1,3 +1,26 @@
+import sys
+import os
+import types
+
+# Ensure pkg_resources is available for face_recognition_models on environments without setuptools
+try:
+    import pkg_resources
+except ImportError:
+    pkg_res_mock = types.ModuleType("pkg_resources")
+    def _resource_filename(package_or_requirement, resource_name):
+        import importlib.util
+        pkg_name = package_or_requirement if isinstance(package_or_requirement, str) else getattr(package_or_requirement, "__name__", str(package_or_requirement))
+        try:
+            spec = importlib.util.find_spec(pkg_name)
+            if spec and spec.origin:
+                pkg_dir = os.path.dirname(spec.origin)
+                return os.path.join(pkg_dir, resource_name)
+        except Exception:
+            pass
+        return resource_name
+    pkg_res_mock.resource_filename = _resource_filename
+    sys.modules["pkg_resources"] = pkg_res_mock
+
 import dlib
 import numpy as np
 import face_recognition_models
