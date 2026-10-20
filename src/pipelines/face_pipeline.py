@@ -79,8 +79,8 @@ def predict_attendance(class_image_np):
     y_train = model_data['y']
     all_students = sorted(list(set(y_train)))
 
-    # dlib 128-d Euclidean distance threshold (standard is 0.60)
-    resemblance_threshold = 0.60
+    # Strict dlib 128-d Euclidean distance threshold to avoid false positives
+    resemblance_threshold = 0.48
 
     for encoding in encodings:
         best_sid = None
