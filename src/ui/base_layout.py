@@ -85,18 +85,18 @@ def style_base_layout():
                 border: none !important;
                 font-family: 'Outfit', sans-serif !important;
                 font-weight: 600 !important;
-                transition: transform 0.25s ease-in-out !important;
+                transition: all 0.25s ease-in-out !important;
                 }
 
             button[kind="secondary"]{
                 border-radius: 1.5rem !important;
-                background-color: #EB459E !important;
+                background-color: #5865F2 !important;
                 color: white !important;
                 padding: 10px 20px !important;
                 border: none !important;
                 font-family: 'Outfit', sans-serif !important;
                 font-weight: 600 !important;
-                transition: transform 0.25s ease-in-out !important;
+                transition: all 0.25s ease-in-out !important;
                 }
 
             button[kind="tertiary"]{
@@ -107,11 +107,83 @@ def style_base_layout():
                 border: none !important;
                 font-family: 'Outfit', sans-serif !important;
                 font-weight: 600 !important;
-                transition: transform 0.25s ease-in-out !important;
+                transition: all 0.25s ease-in-out !important;
                 }
 
-            button:hover{
-                transform :scale(1.05)}
+            button:hover, button[kind="secondary"]:hover, button[kind="primary"]:hover{
+                background-color: #4752C4 !important;
+                transform: scale(1.05) !important;
+                box-shadow: 0 4px 14px rgba(88, 101, 242, 0.4) !important;
+            }
+
+            /* Custom Tabs styling - Blue Theme (#5865F2) */
+            div[data-baseweb="tab-list"] {
+                gap: 12px !important;
+            }
+
+            [data-baseweb="tab"] {
+                font-family: 'Outfit', sans-serif !important;
+                font-weight: 600 !important;
+                color: #475569 !important;
+                transition: all 0.2s ease-in-out !important;
+            }
+
+            /* Hover / Movement on tabs -> Blue color */
+            [data-baseweb="tab"]:hover {
+                color: #5865F2 !important;
+            }
+
+            [data-baseweb="tab"]:hover p, [data-baseweb="tab"]:hover span, [data-baseweb="tab"]:hover div {
+                color: #5865F2 !important;
+            }
+
+            /* Active Tab -> Blue color */
+            [data-baseweb="tab"][aria-selected="true"] {
+                color: #5865F2 !important;
+            }
+
+            [data-baseweb="tab"][aria-selected="true"] p, [data-baseweb="tab"][aria-selected="true"] span, [data-baseweb="tab"][aria-selected="true"] div {
+                color: #5865F2 !important;
+                font-weight: 700 !important;
+            }
+
+            /* Active tab underline bar */
+            [data-baseweb="tab-highlight"] {
+                background-color: #5865F2 !important;
+                height: 3px !important;
+                border-radius: 3px !important;
+            }
+
+            /* File Uploader button & dropzone */
+            [data-testid="stFileUploaderDropzone"] button {
+                background-color: #5865F2 !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 1rem !important;
+                font-family: 'Outfit', sans-serif !important;
+                font-weight: 600 !important;
+                transition: all 0.25s ease-in-out !important;
+            }
+
+            [data-testid="stFileUploaderDropzone"] button:hover {
+                background-color: #4752C4 !important;
+                transform: scale(1.03) !important;
+            }
+
+            [data-testid="stFileUploaderDropzone"]:hover {
+                border-color: #5865F2 !important;
+            }
+
+            /* Camera Input Button */
+            [data-testid="stCameraInput"] button {
+                background-color: #5865F2 !important;
+                color: white !important;
+                border-radius: 1.5rem !important;
+            }
+
+            [data-testid="stCameraInput"] button:hover {
+                background-color: #4752C4 !important;
+            }
 
             /* High contrast readable inputs */
             input, textarea {
