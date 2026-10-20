@@ -131,7 +131,7 @@ def student_screen():
 
     # ---------------- TAB 1: LOGIN ----------------
     with portal_tab_login:
-        st.subheader("FaceID Login")
+        st.markdown("<h3 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-bottom: 2px;'>FaceID Login</h3>", unsafe_allow_html=True)
         st.caption("Verify your face to sign in and view your attendance records.")
 
         login_tabs = st.tabs(["📸 Take Selfie / Upload Photo", "🎥 Live Webcam"])
@@ -182,12 +182,12 @@ def student_screen():
 
     # ---------------- TAB 2: REGISTER ----------------
     with portal_tab_reg:
-        st.subheader("Register New Profile (Face & Voice)")
+        st.markdown("<h3 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-bottom: 2px;'>Register New Profile (Face & Voice)</h3>", unsafe_allow_html=True)
         st.caption("Create your student profile with FaceID and optional Voice profile for seamless AI attendance.")
 
         reg_name = st.text_input("Enter your full name", placeholder="E.g. Hamza Rizvi", key="reg_student_name")
 
-        st.markdown("##### 📸 Face Registration")
+        st.markdown("<h5 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-top: 12px; margin-bottom: 4px;'>📸 Face Registration</h5>", unsafe_allow_html=True)
         reg_tabs = st.tabs(["📸 Take Selfie / Upload Photo", "🎥 Live Webcam"])
         reg_upload = None
         reg_cam = None
@@ -204,7 +204,7 @@ def student_screen():
         reg_photo = reg_upload if reg_upload is not None else reg_cam
 
         st.space()
-        st.markdown("##### 🎙️ Optional: Voice Enrollment")
+        st.markdown("<h5 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-top: 12px; margin-bottom: 4px;'>🎙️ Optional: Voice Enrollment</h5>", unsafe_allow_html=True)
         st.caption("Enroll your voice for voice-only attendance. Record a 5-10s voice e.g. *'Hello, this is my voice. My name is [Your Name]. I am present.'*")
 
         reg_audio = None
