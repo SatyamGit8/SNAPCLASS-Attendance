@@ -9,3 +9,7 @@ supabase
 bcrypt
 segno
 pillow
+torch
+librosa
+webrtcvad-wheels
+resemblyzer

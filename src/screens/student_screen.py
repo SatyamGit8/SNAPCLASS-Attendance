@@ -7,6 +7,7 @@ from src.components.footer import footer_dashboard
 from PIL import Image
 import numpy as np
 from src.pipelines.face_pipeline import predict_attendance, get_face_embeddings, train_classifier
+from src.pipelines.voice_pipeline import get_voice_embedding
 from src.database.db import get_all_students, create_student, get_student_subjects, get_student_attendance, unenroll_student_to_subject
 import time
 
@@ -163,11 +164,12 @@ def student_screen():
 
     # ---------------- TAB 2: REGISTER ----------------
     with portal_tab_reg:
-        st.subheader("Register New Student FaceID")
-        st.caption("Enter your name and take a clear photo of your face to create your account.")
+        st.subheader("Register New Profile (Face & Voice)")
+        st.caption("Create your student profile with FaceID and optional Voice profile for seamless AI attendance.")
 
-        reg_name = st.text_input("Full Name", placeholder="E.g. Akash Sharma", key="reg_student_name")
+        reg_name = st.text_input("Enter your full name", placeholder="E.g. Hamza Rizvi", key="reg_student_name")
 
+        st.markdown("##### 📸 Face Registration")
         reg_tabs = st.tabs(["📸 Take Selfie / Upload Photo", "🎥 Live Webcam"])
         reg_upload = None
         reg_cam = None
@@ -183,13 +185,25 @@ def student_screen():
 
         reg_photo = reg_upload if reg_upload is not None else reg_cam
 
-        if st.button("✨ Register My FaceID Account", type="primary", width="stretch", disabled=not reg_name or not reg_photo):
+        st.space()
+        st.markdown("##### 🎙️ Optional: Voice Enrollment")
+        st.caption("Enroll your voice for voice-only attendance. Record a 5-10s voice e.g. *'Hello, this is my voice. My name is [Your Name]. I am present.'*")
+
+        reg_audio = None
+        try:
+            reg_audio = st.audio_input("Record voice sample (5-10 seconds)", key="reg_student_audio")
+        except Exception:
+            st.warning("Audio recorder not available on this browser.")
+
+        st.space()
+
+        if st.button("✨ Create Account", type="primary", width="stretch", disabled=not reg_name or not reg_photo):
             if not reg_name.strip():
                 st.warning("Please enter your full name!")
             elif not reg_photo:
                 st.warning("Please upload or capture your face photo!")
             else:
-                with st.spinner("Extracting FaceID features & creating profile..."):
+                with st.spinner("Creating profile & extracting facial features..."):
                     reg_photo.seek(0)
                     img = np.array(Image.open(reg_photo).convert('RGB'))
                     encodings = get_face_embeddings(img)
@@ -200,14 +214,24 @@ def student_screen():
                         st.error("Multiple faces detected in registration photo. Please submit a single-person photo.")
                     else:
                         face_emb = encodings[0].tolist()
-                        response_data = create_student(reg_name.strip(), face_embedding=face_emb, voice_embedding=None)
+
+                        voice_emb = None
+                        if reg_audio is not None:
+                            with st.spinner("Extracting voice features..."):
+                                try:
+                                    voice_emb = get_voice_embedding(reg_audio.read())
+                                except Exception as ve:
+                                    st.warning(f"Could not process voice sample: {ve}")
+
+                        response_data = create_student(reg_name.strip(), face_embedding=face_emb, voice_embedding=voice_emb)
 
                         if response_data:
                             train_classifier()
                             st.session_state.is_logged_in = True
                             st.session_state.user_role = 'student'
                             st.session_state.student_data = response_data[0]
-                            st.toast(f"FaceID Profile Created! Welcome, {reg_name.strip()}!", icon="🎉")
+                            success_msg = f"Profile Created with FaceID{' & Voice' if voice_emb else ''}! Welcome, {reg_name.strip()}!"
+                            st.toast(success_msg, icon="🎉")
                             time.sleep(1)
                             st.rerun()
                         else:
