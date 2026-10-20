@@ -115,16 +115,23 @@ def student_screen():
 
     st.space()
     
-    input_method = st.radio("Choose photo method:", ["📷 Live Camera", "📁 Upload Photo"], horizontal=True)
+    tab_upload, tab_camera = st.tabs(["📸 Take Selfie / Upload Photo (Recommended for Mobile)", "🎥 Live Webcam"])
 
-    photo_source = None
-    if input_method == "📷 Live Camera":
+    upload_file = None
+    cam_file = None
+
+    with tab_upload:
+        st.caption("📱 **For Mobile:** Tap below to take a selfie using your phone camera or select a photo.")
+        upload_file = st.file_uploader("Take a selfie or select a photo", type=['jpg', 'jpeg', 'png'], key="student_face_upload")
+
+    with tab_camera:
+        st.caption("💻 **For Laptops:** Use your built-in webcam.")
         try:
-            photo_source = st.camera_input("Position your face in the center")
+            cam_file = st.camera_input("Position your face in the center", key="student_face_cam")
         except Exception:
-            st.warning("⚠️ Camera permission needed. Click the Lock/Camera icon in your browser's address bar to Allow camera, or switch to 'Upload Photo'.")
-    else:
-        photo_source = st.file_uploader("Upload a clear photo/selfie of your face", type=['jpg', 'jpeg', 'png'])
+            st.warning("Webcam access not allowed. Please use the 'Take Selfie / Upload Photo' tab above.")
+
+    photo_source = upload_file if upload_file is not None else cam_file
 
     if photo_source:
         try:
