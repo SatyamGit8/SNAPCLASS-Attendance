@@ -2,11 +2,14 @@ import sys
 import os
 import types
 
-# Ensure pkg_resources is available for face_recognition_models on environments without setuptools
+# Ensure pkg_resources is available for face_recognition_models and webrtcvad on environments without setuptools
 try:
     import pkg_resources
 except ImportError:
-    pkg_res_mock = types.ModuleType("pkg_resources")
+    pkg_resources = types.ModuleType("pkg_resources")
+    sys.modules["pkg_resources"] = pkg_resources
+
+if not hasattr(pkg_resources, "resource_filename"):
     def _resource_filename(package_or_requirement, resource_name):
         import importlib.util
         pkg_name = package_or_requirement if isinstance(package_or_requirement, str) else getattr(package_or_requirement, "__name__", str(package_or_requirement))
@@ -18,8 +21,16 @@ except ImportError:
         except Exception:
             pass
         return resource_name
-    pkg_res_mock.resource_filename = _resource_filename
-    sys.modules["pkg_resources"] = pkg_res_mock
+    pkg_resources.resource_filename = _resource_filename
+
+if not hasattr(pkg_resources, "get_distribution"):
+    class _DummyDistribution:
+        def __init__(self, name="pkg"):
+            self.version = "2.0.10"
+            self.project_name = name
+    def _get_distribution(dist_name):
+        return _DummyDistribution(dist_name)
+    pkg_resources.get_distribution = _get_distribution
 
 import dlib
 import numpy as np

@@ -1,7 +1,41 @@
+import sys
+import os
+import types
+
+# Ensure pkg_resources is available for webrtcvad and other legacy libraries
+try:
+    import pkg_resources
+except ImportError:
+    pkg_resources = types.ModuleType("pkg_resources")
+    sys.modules["pkg_resources"] = pkg_resources
+
+if not hasattr(pkg_resources, "resource_filename"):
+    def _resource_filename(package_or_requirement, resource_name):
+        import importlib.util
+        pkg_name = package_or_requirement if isinstance(package_or_requirement, str) else getattr(package_or_requirement, "__name__", str(package_or_requirement))
+        try:
+            spec = importlib.util.find_spec(pkg_name)
+            if spec and spec.origin:
+                pkg_dir = os.path.dirname(spec.origin)
+                return os.path.join(pkg_dir, resource_name)
+        except Exception:
+            pass
+        return resource_name
+    pkg_resources.resource_filename = _resource_filename
+
+if not hasattr(pkg_resources, "get_distribution"):
+    class _DummyDistribution:
+        def __init__(self, name="pkg"):
+            self.version = "2.0.10"
+            self.project_name = name
+    def _get_distribution(dist_name):
+        return _DummyDistribution(dist_name)
+    pkg_resources.get_distribution = _get_distribution
+
 try:
     from resemblyzer import VoiceEncoder, preprocess_wav
     VOICE_AVAILABLE = True
-except ImportError:
+except Exception:
     VOICE_AVAILABLE = False
     VoiceEncoder = None
     preprocess_wav = None
