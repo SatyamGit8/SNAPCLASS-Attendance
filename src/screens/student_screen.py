@@ -122,6 +122,7 @@ def student_screen():
         with login_tabs[0]:
             login_upload = st.file_uploader("Upload selfie or photo", type=['jpg', 'jpeg', 'png'], key="login_face_upload")
         with login_tabs[1]:
+            st.caption("💡 Camera access blocked? Address bar me upar camera icon par click karke **Allow** karein aur reload karein.")
             try:
                 login_cam = st.camera_input("Position face in center", key="login_face_cam")
             except Exception:
@@ -174,6 +175,7 @@ def student_screen():
         with reg_tabs[0]:
             reg_upload = st.file_uploader("Upload your face photo", type=['jpg', 'jpeg', 'png'], key="reg_face_upload")
         with reg_tabs[1]:
+            st.caption("💡 Camera access blocked? Address bar me upar camera icon par click karke **Allow** karein aur reload karein.")
             try:
                 reg_cam = st.camera_input("Capture face photo", key="reg_face_cam")
             except Exception:
