@@ -165,7 +165,10 @@ def student_screen():
 
                             voice_emb = None
                             if audio_data:
-                                voice_emb = get_voice_embedding(audio_data.read())
+                                try:
+                                    voice_emb = get_voice_embedding(audio_data.read())
+                                except Exception as ve:
+                                    st.warning(f"Voice enrollment skipped due to processing error: {ve}")
 
                             response_data = create_student(new_name, face_embedding=face_emb, voice_embedding=voice_emb)
 
@@ -177,8 +180,10 @@ def student_screen():
                                 st.toast(f'Profile Created! Hi {new_name}!')
                                 time.sleep(1)
                                 st.rerun()
+                            else:
+                                st.error('Failed to create student account in database. Please try again.')
                         else:
-                            st.error('Couldnt capture your facial features for registration')
+                            st.error('Could not capture your facial features for registration. Please face the camera directly.')
 
                 else:
                     st.warning('Please enter your name!')
