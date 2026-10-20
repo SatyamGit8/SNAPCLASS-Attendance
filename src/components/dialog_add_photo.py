@@ -1,50 +1,49 @@
 import streamlit as st
-from src.database.db import enroll_student_to_subject
-from src.database.config import supabase
 from PIL import Image
-import time
 
 
-@st.dialog("Capture or upload photos")
+@st.dialog("Add Classroom Group Photos")
 def add_photos_dialog():
+    st.write("📷 **Upload or capture multiple classroom group photos** to automatically recognize all students.")
 
-    st.write('Add classroom photos to scan for attendance')
+    if 'attendance_images' not in st.session_state:
+        st.session_state.attendance_images = []
 
-    if 'photo_tab' not in st.session_state:
-        st.session_state.photo_tab = 'camera'
+    tabs = st.tabs(["📁 Upload Multiple Group Photos", "📸 Live Camera Snapshot"])
 
-    t1, t2 = st.columns(2)
+    with tabs[0]:
+        st.caption("Upload one or multiple photos covering different angles/rows of your classroom.")
+        uploaded_files = st.file_uploader(
+            "Select classroom group photo(s)",
+            type=['jpg', 'jpeg', 'png'],
+            accept_multiple_files=True,
+            key='uploader_classroom_photos'
+        )
 
-    with t1:
-        type_camera = "primary" if st.session_state.photo_tab == 'camera' else 'tertiary'
-        if st.button('Camera', type=type_camera, width='stretch'):
-            st.session_state.photo_tab = 'camera'
-
-
-
-    with t2:
-        type_upload = "primary" if st.session_state.photo_tab == 'upload' else 'tertiary'
-        if st.button('Upload photos', type=type_upload, width='stretch'):
-            st.session_state.photo_tab = 'upload'
-
-    if st.session_state.photo_tab == 'camera':
-        cam_photo = st.camera_input('Take Snapshot', key='dialog_cam')
-        if cam_photo:
-            st.session_state.attendance_images.append(Image.open(cam_photo))
-            st.toast('Photo Captured')
-            st.rerun()
-
-
-    if st.session_state.photo_tab == 'upload':
-        uploaded_files = st.file_uploader( 'choose image files', type=['jpg', 'png', 'jpeg' ], accept_multiple_files=True, key='dialog_upload')
-
-        if uploaded_files:
+        if st.button("➕ Add Photos to Analysis Batch", type="primary", disabled=not uploaded_files, width="stretch"):
+            count = 0
             for f in uploaded_files:
-                st.session_state.attendance_images.append(Image.open(f))
-            
-            st.toast('Photo Uploaded Successfully')
+                f.seek(0)
+                img = Image.open(f).convert("RGB")
+                st.session_state.attendance_images.append(img)
+                count += 1
+            st.toast(f"{count} classroom photo(s) added successfully!", icon="✅")
             st.rerun()
+
+    with tabs[1]:
+        st.caption("Capture a live snapshot of the classroom from your device camera.")
+        cam_photo = st.camera_input("Capture Classroom Photo", key="cam_classroom_snapshot")
+        if cam_photo:
+            if st.button("➕ Add This Snapshot", type="primary", width="stretch"):
+                cam_photo.seek(0)
+                img = Image.open(cam_photo).convert("RGB")
+                st.session_state.attendance_images.append(img)
+                st.toast("Snapshot added to batch!", icon="📸")
+                st.rerun()
 
     st.divider()
-    if st.button('Done', type='primary', width='stretch'):
+    current_count = len(st.session_state.attendance_images)
+    st.info(f"📊 Currently **{current_count}** photo(s) ready for AI Face Analysis.")
+
+    if st.button("Done", type="secondary", width="stretch"):
         st.rerun()

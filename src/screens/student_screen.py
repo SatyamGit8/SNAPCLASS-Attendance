@@ -174,21 +174,13 @@ def student_screen():
 
     if show_registration:
         with st.container(border=True):
-            st.header('Register new Profile')
-            new_name = st.text_input("Enter your name", placeholder='E.g. Hamza Rizvi')
+            st.header('👤 Register New FaceID Profile')
+            st.caption("Your face has been scanned! Just enter your full name to complete registration.")
+            new_name = st.text_input("Enter your full name", placeholder='E.g. Akash Sharma')
 
-            st.subheader('Optional : Voice Enrollment')
-            st.info("Enroll for voice attendance (optional)")
-
-            audio_data = None
-            try:
-                audio_data = st.audio_input('Record a short phrase like: "I am present, my name is..."')
-            except Exception:
-                pass
-
-            if st.button('Create Account', type='primary'):
+            if st.button('✨ Register FaceID Account', type='primary', width='stretch'):
                 if new_name:
-                    with st.spinner('Creating profile..'):
+                    with st.spinner('Creating your FaceID profile...'):
                         img = st.session_state.get('last_scanned_img')
                         if img is None and photo_source is not None:
                             photo_source.seek(0)
@@ -197,31 +189,25 @@ def student_screen():
                         encodings = None
                         if img is not None:
                             encodings = get_face_embeddings(img)
+
                         if encodings:
                             face_emb = encodings[0].tolist()
 
-                            voice_emb = None
-                            if audio_data:
-                                try:
-                                    voice_emb = get_voice_embedding(audio_data.read())
-                                except Exception as ve:
-                                    st.warning(f"Voice enrollment skipped due to processing error: {ve}")
-
-                            response_data = create_student(new_name, face_embedding=face_emb, voice_embedding=voice_emb)
+                            response_data = create_student(new_name.strip(), face_embedding=face_emb, voice_embedding=None)
 
                             if response_data:
                                 train_classifier()
                                 st.session_state.is_logged_in = True
                                 st.session_state.user_role = 'student'
                                 st.session_state.student_data = response_data[0]
-                                st.toast(f'Profile Created! Hi {new_name}!')
+                                st.session_state['show_registration'] = False
+                                st.toast(f'FaceID Registered! Welcome, {new_name}!')
                                 time.sleep(1)
                                 st.rerun()
                             else:
                                 st.error('Failed to create student account in database. Please try again.')
                         else:
-                            st.error('Could not capture your facial features for registration. Please face the camera directly.')
-
+                            st.error('Could not capture clear facial features. Please ensure good lighting and face the camera directly.')
                 else:
                     st.warning('Please enter your name!')
 
