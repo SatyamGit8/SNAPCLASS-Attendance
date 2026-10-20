@@ -2,24 +2,20 @@ import streamlit as st
 
 
 def footer_home():
-    logo_url = "https://tse2.mm.bing.net/th/id/OIP.rnDT9E--GzURmXvkuDPYCAHaCm?r=0&rs=1&pid=ImgDetMain&o=7&rm=3"
-    
-    st.markdown(f"""
-        <div style="margin-top:2rem; display:flex; gap:8px; justify-content:center; align-items:center">
-            <p style="font-weight:bold; color:white; margin:0; font-size:0.95rem;"> Created with ❤️ by </p>  
-            <div style="background:white; padding:3px 10px; border-radius:6px; display:inline-flex; align-items:center; box-shadow:0 2px 6px rgba(0,0,0,0.18);">
-                <img src='{logo_url}' alt='SATYAM' style='height:20px; object-fit:contain;' />
-            </div>
+    st.markdown("""
+        <div style="margin-top:2rem; display:flex; justify-content:center; align-items:center;">
+            <p style="font-weight:bold; color:white; font-size:1.05rem; margin:0; letter-spacing:0.5px; font-family:'Outfit', sans-serif;">
+                Created with ❤️ by <span style="font-weight:800; letter-spacing:1px; text-transform:uppercase;">SATYAM</span>
+            </p>
         </div>
     """, unsafe_allow_html=True)
 
 
 def footer_dashboard():
-    logo_url = "https://tse2.mm.bing.net/th/id/OIP.rnDT9E--GzURmXvkuDPYCAHaCm?r=0&rs=1&pid=ImgDetMain&o=7&rm=3"
-    
-    st.markdown(f"""
-        <div style="margin-top:2rem; display:flex; gap:8px; justify-content:center; align-items:center">
-            <p style="font-weight:bold; color:#1e293b; margin:0; font-size:0.95rem;"> Created with ❤️ by </p>  
-            <img src='{logo_url}' alt='SATYAM' style='height:22px; object-fit:contain; vertical-align:middle;' />
+    st.markdown("""
+        <div style="margin-top:2rem; display:flex; justify-content:center; align-items:center;">
+            <p style="font-weight:bold; color:#1e293b; font-size:1.05rem; margin:0; letter-spacing:0.5px; font-family:'Outfit', sans-serif;">
+                Created with ❤️ by <span style="font-weight:800; letter-spacing:1px; color:#5865F2; text-transform:uppercase;">SATYAM</span>
+            </p>
         </div>
     """, unsafe_allow_html=True)
