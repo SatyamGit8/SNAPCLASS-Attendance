@@ -108,6 +108,11 @@ def student_screen():
 
     st.header('Login using FaceID', text_alignment='center')
     st.space()
+
+    pending_code = st.session_state.get('pending_join_code') or st.query_params.get('join-code')
+    if pending_code:
+        st.info(f"🎓 **Class Invitation:** You are joining class code **`{pending_code}`**. Please scan your face to log in or register, and you will be enrolled automatically!")
+
     st.space()
     
     show_registration = False
