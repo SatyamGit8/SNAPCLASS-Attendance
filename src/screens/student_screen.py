@@ -139,7 +139,7 @@ def student_screen():
         login_cam = None
 
         with login_tabs[0]:
-            login_upload = st.file_uploader("Upload selfie or photo", type=['jpg', 'jpeg', 'png'], key="login_face_upload")
+            login_upload = st.file_uploader(":pink[Upload selfie or photo]", type=['jpg', 'jpeg', 'png'], key="login_face_upload")
         with login_tabs[1]:
             st.caption("💡 Camera access blocked? Address bar me upar camera icon par click karke **Allow** karein aur reload karein.")
             try:
@@ -185,7 +185,7 @@ def student_screen():
         st.markdown("<h3 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-bottom: 2px;'>Register New Profile (Face & Voice)</h3>", unsafe_allow_html=True)
         st.caption("Create your student profile with FaceID and optional Voice profile for seamless AI attendance.")
 
-        reg_name = st.text_input("Enter your full name", placeholder="E.g. Hamza Rizvi", key="reg_student_name")
+        reg_name = st.text_input(":pink[Enter your full name]", placeholder="E.g. Hamza Rizvi", key="reg_student_name")
 
         st.markdown("<h5 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-top: 12px; margin-bottom: 4px;'>📸 Face Registration</h5>", unsafe_allow_html=True)
         reg_tabs = st.tabs(["📸 Take Selfie / Upload Photo", "🎥 Live Webcam"])
@@ -193,7 +193,7 @@ def student_screen():
         reg_cam = None
 
         with reg_tabs[0]:
-            reg_upload = st.file_uploader("Upload your face photo", type=['jpg', 'jpeg', 'png'], key="reg_face_upload")
+            reg_upload = st.file_uploader(":pink[Upload your face photo]", type=['jpg', 'jpeg', 'png'], key="reg_face_upload")
         with reg_tabs[1]:
             st.caption("💡 Camera access blocked? Address bar me upar camera icon par click karke **Allow** karein aur reload karein.")
             try:
@@ -209,7 +209,7 @@ def student_screen():
 
         reg_audio = None
         try:
-            reg_audio = st.audio_input("Record voice sample (5-10 seconds)", key="reg_student_audio")
+            reg_audio = st.audio_input(":pink[Record voice sample (5-10 seconds)]", key="reg_student_audio")
         except Exception:
             st.warning("Audio recorder not available on this browser.")
 

@@ -203,6 +203,16 @@ def style_base_layout():
                 color: #0F172A !important;
                 font-weight: 600 !important;
             }
+
+            /* Pink Labels for Student Portal Widgets */
+            div[data-testid="stTabs"] label,
+            div[data-testid="stTabs"] label p,
+            div[data-testid="stTabs"] [data-testid="stWidgetLabel"] p,
+            div[data-testid="stTabs"] [data-testid="stWidgetLabel"] span {
+                color: #EB459E !important;
+                font-weight: 600 !important;
+                font-family: 'Outfit', sans-serif !important;
+            }
         </style>  
 
                 """
