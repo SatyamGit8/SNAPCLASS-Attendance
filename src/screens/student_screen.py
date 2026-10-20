@@ -115,6 +115,8 @@ def student_screen():
 
     st.space()
     
+    show_registration = st.session_state.get('show_registration', False)
+
     tab_upload, tab_camera = st.tabs(["📸 Take Selfie / Upload Photo (Recommended for Mobile)", "🎥 Live Webcam"])
 
     upload_file = None
@@ -161,12 +163,14 @@ def student_screen():
                             st.session_state.is_logged_in = True
                             st.session_state.user_role = 'student'
                             st.session_state.student_data = student
+                            st.session_state['show_registration'] = False
                             st.toast(f'Welcome Back {student["name"]}!')
                             time.sleep(1)
                             st.rerun()
                     else:
                         st.info('Face not recognized! You might be a new student!')
                         show_registration = True
+                        st.session_state['show_registration'] = True
 
     if show_registration:
         with st.container(border=True):
@@ -190,6 +194,7 @@ def student_screen():
                             photo_source.seek(0)
                             img = np.array(Image.open(photo_source).convert('RGB'))
 
+                        encodings = None
                         if img is not None:
                             encodings = get_face_embeddings(img)
                         if encodings:
