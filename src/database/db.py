@@ -128,7 +128,7 @@ def create_attendance(logs):
 
 def get_attendance_for_teacher(teacher_id):
     try:
-        response = supabase.table('attendance_logs').select("*, subjects!inner(*)").eq('subjects.teacher_id', teacher_id).execute()
+        response = supabase.table('attendance_logs').select("*, subjects!inner(*), students(*)").eq('subjects.teacher_id', teacher_id).execute()
         return response.data or []
     except Exception as e:
         st.error(f"Error fetching teacher attendance: {e}")

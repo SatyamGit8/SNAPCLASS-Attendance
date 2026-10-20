@@ -246,45 +246,75 @@ def teacher_tab_attendance_records():
     records = get_attendance_for_teacher(teacher_id)
 
     if not records:
+        st.info("No attendance records found yet. Take attendance using face or voice to see records here.")
         return
     
     data = []
 
     for r in records:
         ts = r.get('timestamp')
+        student = r.get('students') or {}
 
         data.append({
             "ts_group": ts.split(".")[0] if ts else None,
-            "Time": datetime.fromisoformat(ts).strftime("%Y-%m-%d %I:%M %p") if ts else "N'A",
+            "Time": datetime.fromisoformat(ts).strftime("%Y-%m-%d %I:%M %p") if ts else "N/A",
             "Subject": r['subjects']['name'],
-            "Subject Code":r['subjects']['subject_code'],
-            "is_present": bool(r.get('is_present', False))
+            "Subject Code": r['subjects']['subject_code'],
+            "Student Name": student.get('name', f"Student #{r.get('student_id')}"),
+            "Student ID": r.get('student_id'),
+            "is_present": bool(r.get('is_present', False)),
+            "Status": "✅ Present" if r.get('is_present', False) else "❌ Absent"
         })
-
 
     df = pd.DataFrame(data)
 
-
-
+    st.subheader("📋 Session Summary")
     summary = (
         df.groupby(['ts_group', 'Time', 'Subject', 'Subject Code'])
         .agg(
             Present_Count = ('is_present', 'sum'),
             Total_Count =('is_present', 'count')
         ).reset_index()
-
     )
 
     summary['Attendance Stats'] = (
-        "✅ " + summary['Present_Count'].astype(str) + " /"
-        + summary['Total_Count'].astype(str) + ' Students'
+        "✅ " + summary['Present_Count'].astype(str) + " / "
+        + summary['Total_Count'].astype(str) + ' Present'
     )
 
-    display_df = ( summary.sort_values(by='ts_group' ,ascending=False)
+    display_df = ( summary.sort_values(by='ts_group', ascending=False)
                   [['Time', 'Subject', 'Subject Code', 'Attendance Stats']]
                   )
     
     st.dataframe(display_df, width='stretch', hide_index=True)
+
+    st.divider()
+
+    st.subheader("🔍 Detailed Student List by Session")
+    st.caption("Select an attendance session below to see individual students who were marked Present or Absent.")
+
+    sessions = summary.sort_values(by='ts_group', ascending=False)
+    session_options = {
+        f"{row['Time']} — {row['Subject']} ({row['Subject Code']})": row['ts_group']
+        for _, row in sessions.iterrows()
+    }
+
+    if session_options:
+        selected_session_label = st.selectbox("Select Session", options=list(session_options.keys()))
+        selected_ts = session_options[selected_session_label]
+
+        session_students = df[df['ts_group'] == selected_ts][['Student Name', 'Student ID', 'Status', 'Time']]
+        
+        c1, c2 = st.columns([1, 3])
+        with c1:
+            filter_choice = st.radio("Filter", ["All", "Present Only", "Absent Only"], horizontal=True)
+
+        if filter_choice == "Present Only":
+            session_students = session_students[session_students['Status'] == "✅ Present"]
+        elif filter_choice == "Absent Only":
+            session_students = session_students[session_students['Status'] == "❌ Absent"]
+
+        st.dataframe(session_students, width='stretch', hide_index=True)
 
 
 def login_teacher(username, password):
