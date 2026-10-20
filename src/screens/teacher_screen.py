@@ -156,19 +156,19 @@ def teacher_tab_take_attendance():
                 enrolled_res = supabase.table('subject_students').select("*, students(*)").eq('subject_id',selected_subject_id ).execute()
                 enrolled_students = enrolled_res.data
 
+                results, attendance_to_log = [], []
+
                 if not enrolled_students:
                     st.warning('No students enrolled in this course')
                 else:
-
-                    results, attendance_to_log  = [], []
-
                     current_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-
                     for node in enrolled_students:
-                        student = node['students']
+                        student = node.get('students')
+                        if not student:
+                            continue
                         sources = all_detected_ids.get(int(student['student_id']), [])
-                        is_present= len(sources) > 0
+                        is_present = len(sources) > 0
 
                         results.append({
                             "Name": student['name'],
@@ -184,7 +184,10 @@ def teacher_tab_take_attendance():
                             'is_present': bool(is_present)
                         })
 
-                    attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
+                    if results:
+                        attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
+                    else:
+                        st.warning('No valid enrolled student data found.')
 
     with c3:
         if st.button('Use Voice Attendance', type='primary', width='stretch', icon=':material/mic:'):
@@ -347,10 +350,12 @@ def register_teacher(teacher_username, teacher_name, teacher_pass, teacher_pass_
         return False, "Password doesn't match"
     
     try:
-        create_teacher(teacher_username, teacher_pass, teacher_name)
-        return True, "Sucessfully Created! Login Now"
+        res = create_teacher(teacher_username, teacher_pass, teacher_name)
+        if res:
+            return True, "Successfully Created! Login Now"
+        return False, "Failed to create account. Please check database permissions or try again."
     except Exception as e:
-        return False, "Unexpected Error!"
+        return False, f"Unexpected Error: {e}"
     
 
 def teacher_screen_register():
