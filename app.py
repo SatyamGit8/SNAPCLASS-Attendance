@@ -1,4 +1,3 @@
-
 import streamlit as st
 
 from src.screens.home_screen import home_screen
@@ -7,10 +6,11 @@ from src.screens.student_screen import student_screen
 
 from src.components.dialog_auto_enroll import auto_enroll_dialog
 
+
 def main():
     st.set_page_config(
         page_title='SnapClass - Making Attendance faster using AI',
-        page_icon= "https://i.ibb.co/YTYGn5qV/logo.png"
+        page_icon="https://i.ibb.co/YTYGn5qV/logo.png"
     )
     if 'login_type' not in st.session_state:
         st.session_state['login_type'] = None
@@ -21,16 +21,23 @@ def main():
 
         case 'student':
             student_screen()
-        
+
         case None:
             home_screen()
 
-
-    join_code = st.query_params.get('join-code')
+    # Handle QR Code / Link join-code query param
+    join_code = st.query_params.get('join-code') or st.session_state.get('pending_join_code')
     if join_code:
-        if st.session_state.login_type != 'student':
-            st.session_state.login_type = 'student'
-            st.rerun()
+        st.session_state['pending_join_code'] = join_code
+
         if st.session_state.get('is_logged_in') and st.session_state.get('user_role') == 'student':
             auto_enroll_dialog(join_code)
+        elif st.session_state.get('is_logged_in') and st.session_state.get('user_role') == 'teacher':
+            st.info(f"Class join link received for **{join_code}**. Please log in with a student account to enroll.")
+        else:
+            if st.session_state.get('login_type') != 'student':
+                st.session_state['login_type'] = 'student'
+                st.rerun()
+
+
 main()
