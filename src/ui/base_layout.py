@@ -199,16 +199,19 @@ def style_base_layout():
                 background-color: #FFFFFF !important;
                 border-radius: 10px !important;
             }
-            label {
-                color: #0F172A !important;
-                font-weight: 600 !important;
-            }
-
-            /* Pink Labels for Student Portal Widgets */
-            div[data-testid="stTabs"] label,
-            div[data-testid="stTabs"] label p,
-            div[data-testid="stTabs"] [data-testid="stWidgetLabel"] p,
-            div[data-testid="stTabs"] [data-testid="stWidgetLabel"] span {
+            /* Pink Labels for Input Widgets */
+            div[data-testid="stWidgetLabel"],
+            div[data-testid="stWidgetLabel"] *,
+            label[data-testid="stWidgetLabel"],
+            label[data-testid="stWidgetLabel"] *,
+            div[data-testid="stTextInput"] label,
+            div[data-testid="stTextInput"] label *,
+            div[data-testid="stFileUploader"] label,
+            div[data-testid="stFileUploader"] label *,
+            div[data-testid="stAudioInput"] label,
+            div[data-testid="stAudioInput"] label *,
+            div[data-testid="stCameraInput"] label,
+            div[data-testid="stCameraInput"] label * {
                 color: #EB459E !important;
                 font-weight: 600 !important;
                 font-family: 'Outfit', sans-serif !important;
