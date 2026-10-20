@@ -9,5 +9,3 @@ supabase
 bcrypt
 segno
 pillow
-librosa
-torch

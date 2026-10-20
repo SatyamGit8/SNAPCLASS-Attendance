@@ -8,7 +8,10 @@ except ImportError:
 
 import numpy as np 
 import io
-import librosa
+try:
+    import librosa
+except ImportError:
+    librosa = None
 import streamlit as st
 
 
