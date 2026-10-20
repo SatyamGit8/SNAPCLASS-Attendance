@@ -1,15 +1,17 @@
 import streamlit as st
+import time
 from src.database.db import enroll_student_to_subject
 from src.database.config import supabase
-import time
 
 
-@st.dialog("Enroll in Subject")
+@st.dialog("Enroll in Course")
 def enroll_dialog():
-    st.write('Enter the subject code provided by your teacher to enroll:')
-    join_code = st.text_input('Subject Code', placeholder='Eg. ECS-403')
+    st.caption("Enter the unique course code provided by your instructor to register:")
+    join_code = st.text_input('Course Code', placeholder='e.g. ECS-403 or CS101')
 
-    if st.button('Enroll now', type='primary', width='stretch'):
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
+    if st.button('Enroll Now', type='primary', width='stretch'):
         clean_code = join_code.strip() if join_code else ""
         if clean_code:
             res = supabase.table('subjects').select('subject_id, name, subject_code').ilike('subject_code', clean_code).execute()
@@ -22,10 +24,10 @@ def enroll_dialog():
                     st.warning('You are already enrolled in this course!')
                 else:
                     enroll_student_to_subject(student_id, subject['subject_id'])
-                    st.success(f'Successfully enrolled in {subject["name"]}!')
+                    st.toast(f'Successfully enrolled in {subject["name"]}!', icon="🎉")
                     time.sleep(1)
                     st.rerun()
             else:
-                st.error(f'Subject code "{clean_code}" not found. Please verify with your teacher.')
+                st.error(f'Course code "{clean_code}" was not found. Please verify with your instructor.')
         else:
-            st.warning('Please enter a subject code')
+            st.warning('Please enter a valid course code.')
