@@ -141,7 +141,7 @@ def student_screen():
         with login_tabs[0]:
             login_upload = st.file_uploader("Upload selfie or photo", type=['jpg', 'jpeg', 'png'], key="login_face_upload")
         with login_tabs[1]:
-            st.caption("💡 Camera access blocked? Address bar me upar camera icon par click karke **Allow** karein aur reload karein.")
+            st.info("📷 **Camera Permission:** Agar camera block hai, to browser ke address bar me upar right side me **Camera icon (red cross)** par click karke **'Always allow'** karein aur page reload karein.")
             try:
                 login_cam = st.camera_input("Position face in center", key="login_face_cam")
             except Exception:
@@ -195,13 +195,15 @@ def student_screen():
         with reg_tabs[0]:
             reg_upload = st.file_uploader("Upload your face photo", type=['jpg', 'jpeg', 'png'], key="reg_face_upload")
         with reg_tabs[1]:
-            st.caption("💡 Camera access blocked? Address bar me upar camera icon par click karke **Allow** karein aur reload karein.")
+            st.info("📷 **Camera Enable Guide:** Agar upar 'This app would like to use your camera' aa raha hai, to browser ke address bar me upar right side me **Camera icon (red cross)** par click karein, **'Always allow'** select karein aur page reload (F5) karein.")
             try:
                 reg_cam = st.camera_input("Capture face photo", key="reg_face_cam")
             except Exception:
                 st.warning("Camera permission denied. Use the 'Upload Photo' tab.")
 
         reg_photo = reg_upload if reg_upload is not None else reg_cam
+        if reg_photo:
+            st.success("✅ Face photo ready!")
 
         st.space()
         st.markdown("<h5 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-top: 12px; margin-bottom: 4px;'>🎙️ Optional: Voice Enrollment</h5>", unsafe_allow_html=True)
