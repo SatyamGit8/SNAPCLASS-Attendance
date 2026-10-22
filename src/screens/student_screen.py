@@ -64,14 +64,23 @@ def student_dashboard():
         if not sub:
             continue
         sid = sub['subject_id']
+        sub_name = sub.get('name', 'Subject')
 
         stats = stats_map.get(sid, {"total": 0, "attended": 0})
 
-        def unenroll_button():
-            if st.button("Unenroll from this course", type='tertiary', width='stretch', icon=':material/delete_forever:'):
-                unenroll_student_to_subject(student_id, sid)
-                st.toast(f'Unenrolled from {sub["name"]} successfully!')
-                st.rerun()
+        def make_unenroll_callback(curr_sid, curr_name):
+            def _callback():
+                if st.button(
+                    "Unenroll from this course",
+                    key=f"unenroll_btn_{student_id}_{curr_sid}",
+                    type='tertiary',
+                    width='stretch',
+                    icon=':material/delete_forever:'
+                ):
+                    unenroll_student_to_subject(student_id, curr_sid)
+                    st.toast(f'Unenrolled from {curr_name} successfully!')
+                    st.rerun()
+            return _callback
 
         with cols[i % 2]:
             subject_card(
@@ -82,7 +91,7 @@ def student_dashboard():
                     ('📅', 'Total', stats['total']),
                     ('✅', 'Attended', stats['attended']),
                 ],
-                footer_callback=unenroll_button
+                footer_callback=make_unenroll_callback(sid, sub_name)
             )
 
     if logs:
