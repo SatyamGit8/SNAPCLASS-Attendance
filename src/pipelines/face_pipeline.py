@@ -69,7 +69,7 @@ def get_face_embeddings(image_np):
     return encodings
 
 
-@st.cache_resource
+@st.cache_resource(ttl=5)
 def get_trained_model():
     X = []
     y = []
@@ -96,7 +96,7 @@ def train_classifier():
     return bool(model_data)
 
 
-def predict_attendance(class_image_np):
+def predict_attendance(class_image_np, tolerance=0.58):
     """
     Scans a classroom group photo or individual selfie, detects all faces,
     and matches them against registered student FaceID embeddings using
@@ -113,8 +113,8 @@ def predict_attendance(class_image_np):
     y_train = model_data['y']
     all_students = sorted(list(set(y_train)))
 
-    # Strict dlib 128-d Euclidean distance threshold to avoid false positives
-    resemblance_threshold = 0.48
+    # Standard dlib 128-d Euclidean distance threshold (0.58 allows realistic classroom angles/lighting)
+    resemblance_threshold = tolerance
 
     for encoding in encodings:
         best_sid = None
@@ -127,6 +127,6 @@ def predict_attendance(class_image_np):
                 best_sid = sid
 
         if min_dist <= resemblance_threshold and best_sid is not None:
-            detected_student[int(best_sid)] = True
+            detected_student[int(best_sid)] = round(float(min_dist), 3)
 
     return detected_student, all_students, len(encodings)

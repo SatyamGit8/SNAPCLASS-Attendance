@@ -22,6 +22,9 @@ from src.database.config import supabase
 
 
 from src.components.dialog_voice_attendance import voice_attendance_dialog
+from src.pipelines.voice_pipeline import process_bulk_audio
+from PIL import Image
+
 def teacher_screen():
 
     style_background_dashboard()
@@ -95,72 +98,88 @@ def teacher_tab_take_attendance():
     teacher_id = st.session_state.teacher_data['teacher_id']
     st.header('Take AI Attendance')
 
-
-    if 'attendance_images' not in st.session_state:
-        st.session_state.attendance_images = []
-
     subjects = get_teacher_subjects(teacher_id)
 
     if not subjects:
-        st.warning('You havent created any subjects yet! Please create one to begin!')
+        st.warning('You haven\'t created any subjects yet! Please create one in Manage Subjects to begin!')
         return
-    
+
     subject_options = {f"{s['name']} - {s['subject_code']}": s['subject_id'] for s in subjects}
-
-    col1, col2 = st.columns([3,1], vertical_alignment='bottom')
-
-    with col1:
-        selected_subject_label = st.selectbox('Select Subject', options=list(subject_options.keys()))
-
-    with col2:
-        if st.button('Add Photos', type='primary', icon=':material/photo_prints:', width='stretch'):
-            add_photos_dialog()
-
+    selected_subject_label = st.selectbox('Select Subject', options=list(subject_options.keys()))
     selected_subject_id = subject_options[selected_subject_label]
 
-    st.divider()
+    enrolled_res = supabase.table('subject_students').select("*, students(*)").eq('subject_id', selected_subject_id).execute()
+    enrolled_students = enrolled_res.data or []
 
-    if st.session_state.attendance_images:
-        st.header('Added Photos')
-        gallery_cols = st.columns(4)
+    st.caption(f"👥 **Enrolled Students:** {len(enrolled_students)} student(s) currently enrolled in this subject.")
+    if not enrolled_students:
+        st.info("💡 **Tip:** No students are enrolled yet in this subject. Students can enroll via the **Student Portal** using the Subject Code!")
 
-        for idx, img in enumerate(st.session_state.attendance_images):
-            with gallery_cols[idx % 4 ]:
-                st.image(img, width='stretch', caption=f'Photo {idx+1}')
-    has_photos = bool(st.session_state.attendance_images)
-    c1, c2, c3 = st.columns(3)
+    st.space()
 
-    with c1:
-        if st.button('Clear all photos', width='stretch', type='tertiary', icon=':material/delete:', disabled=not has_photos):
-            st.session_state.attendance_images = []
-            st.rerun()
+    # Three Attendance Modes: Face ID, Voice, or Combined (Dual)
+    att_tab_face, att_tab_voice, att_tab_dual = st.tabs([
+        "📸 Face ID Attendance",
+        "🎙️ Voice Attendance",
+        "⚡ Combined (Face + Voice)"
+    ])
 
+    # ================= TAB 1: FACE ID ATTENDANCE =================
+    with att_tab_face:
+        st.subheader("Face Recognition Attendance")
+        st.caption("Upload classroom photos or capture a live webcam photo to recognize and mark all students present.")
 
-    with c2:
-        
-        if st.button('Run Face Analysis', width='stretch', type='secondary', icon=':material/analytics:', disabled=not has_photos):
-            with st.spinner('Deep scanning classroom photos...'):
-                all_detected_ids = {}
+        f_col1, f_col2 = st.columns(2)
+        with f_col1:
+            face_uploaded_files = st.file_uploader(
+                "Upload classroom photo(s)",
+                type=['jpg', 'jpeg', 'png'],
+                accept_multiple_files=True,
+                key="teacher_face_upload"
+            )
+        with f_col2:
+            st.caption("Or capture directly from classroom webcam:")
+            face_cam_file = st.camera_input("Take Live Classroom Photo", key="teacher_face_cam")
 
-                for idx, img in enumerate(st.session_state.attendance_images):
-                    img_np = np.array(img.convert('RGB'))
-                    detected, _, _ = predict_attendance(img_np)
+        all_face_images = []
+        if face_uploaded_files:
+            for f in face_uploaded_files:
+                f.seek(0)
+                all_face_images.append(Image.open(f).convert("RGB"))
+        if face_cam_file:
+            face_cam_file.seek(0)
+            all_face_images.append(Image.open(face_cam_file).convert("RGB"))
 
+        if all_face_images:
+            st.info(f"📊 **{len(all_face_images)}** photo(s) ready for Face Analysis.")
+            preview_cols = st.columns(min(len(all_face_images), 4))
+            for p_idx, p_img in enumerate(all_face_images[:4]):
+                with preview_cols[p_idx]:
+                    st.image(p_img, caption=f"Photo {p_idx+1}", width="stretch")
 
-                    if detected:
-                        for sid in detected.keys():
-                            student_id = int(sid)
+        if st.button("🔍 Run Face Analysis & Mark Attendance", type="primary", width="stretch", disabled=not all_face_images):
+            if not enrolled_students:
+                st.warning("No students are enrolled in this course yet.")
+            else:
+                with st.spinner("Scanning classroom photo(s) for student faces..."):
+                    all_detected_ids = {}
+                    total_faces_found = 0
 
-                            all_detected_ids.setdefault(student_id, []).append(f"Photo {idx+1}")
+                    for idx, img in enumerate(all_face_images):
+                        img_np = np.array(img)
+                        detected, _, num_faces = predict_attendance(img_np, tolerance=0.58)
+                        total_faces_found += num_faces
 
-                enrolled_res = supabase.table('subject_students').select("*, students(*)").eq('subject_id',selected_subject_id ).execute()
-                enrolled_students = enrolled_res.data
+                        if detected:
+                            for sid in detected.keys():
+                                all_detected_ids.setdefault(int(sid), []).append(f"Photo {idx+1}")
 
-                results, attendance_to_log = [], []
+                    if total_faces_found == 0:
+                        st.warning("⚠️ No faces detected in the provided photo(s). Please ensure faces are clearly lit and facing the camera.")
+                    else:
+                        st.toast(f"Detected {total_faces_found} face(s) across photos!", icon="📸")
 
-                if not enrolled_students:
-                    st.warning('No students enrolled in this course')
-                else:
+                    results, attendance_to_log = [], []
                     current_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
                     for node in enrolled_students:
@@ -186,12 +205,142 @@ def teacher_tab_take_attendance():
 
                     if results:
                         attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
-                    else:
-                        st.warning('No valid enrolled student data found.')
 
-    with c3:
-        if st.button('Use Voice Attendance', type='primary', width='stretch', icon=':material/mic:'):
-            voice_attendance_dialog(selected_subject_id)
+    # ================= TAB 2: VOICE ATTENDANCE =================
+    with att_tab_voice:
+        st.subheader("Voice Recognition Attendance")
+        st.caption("Record classroom audio of students answering roll call / speaking. AI will recognize enrolled voices.")
+
+        voice_audio = st.audio_input("Record classroom audio", key="teacher_voice_audio")
+
+        if st.button("🎙️ Analyze Voice & Mark Attendance", type="primary", width="stretch", disabled=not voice_audio):
+            if not enrolled_students:
+                st.warning("No students enrolled in this course yet.")
+            else:
+                candidates_dict = {
+                    s['students']['student_id']: s['students']['voice_embedding']
+                    for s in enrolled_students if s.get('students') and s['students'].get('voice_embedding')
+                }
+                if not candidates_dict:
+                    st.error("None of the enrolled students have voice profiles registered yet.")
+                else:
+                    with st.spinner("Analyzing classroom voice audio..."):
+                        voice_audio.seek(0)
+                        detected_scores = process_bulk_audio(voice_audio.read(), candidates_dict)
+
+                        results, attendance_to_log = [], []
+                        current_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+                        for node in enrolled_students:
+                            student = node.get('students')
+                            if not student:
+                                continue
+                            score = detected_scores.get(student['student_id'], 0.0)
+                            is_present = bool(score > 0)
+
+                            results.append({
+                                "Name": student['name'],
+                                "ID": student['student_id'],
+                                "Source": "Voice" if is_present else "-",
+                                "Status": "✅ Present" if is_present else "❌ Absent"
+                            })
+
+                            attendance_to_log.append({
+                                'student_id': student['student_id'],
+                                'subject_id': selected_subject_id,
+                                'timestamp': current_timestamp,
+                                'is_present': bool(is_present)
+                            })
+
+                        if results:
+                            attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
+
+    # ================= TAB 3: DUAL ATTENDANCE (FACE + VOICE) =================
+    with att_tab_dual:
+        st.subheader("⚡ Combined Attendance (Face + Voice)")
+        st.caption("Take classroom photo(s) AND record audio in one session. Students recognized by EITHER Face OR Voice will be marked Present!")
+
+        d_col1, d_col2 = st.columns(2)
+        with d_col1:
+            st.markdown("##### 📸 Step 1: Classroom Photo")
+            dual_photo_upload = st.file_uploader(
+                "Upload classroom photo",
+                type=['jpg', 'jpeg', 'png'],
+                key="dual_att_photo"
+            )
+            dual_cam_photo = st.camera_input("Or take live snapshot", key="dual_att_cam")
+            dual_photo = dual_photo_upload if dual_photo_upload is not None else dual_cam_photo
+
+        with d_col2:
+            st.markdown("##### 🎙️ Step 2: Classroom Audio")
+            dual_audio = st.audio_input("Record classroom audio / roll call", key="dual_att_audio")
+
+        dual_ready = (dual_photo is not None) or (dual_audio is not None)
+
+        if st.button("⚡ Run Combined AI Attendance", type="primary", width="stretch", disabled=not dual_ready):
+            if not enrolled_students:
+                st.warning("No students enrolled in this course yet.")
+            else:
+                with st.spinner("Running Multi-Modal AI Attendance (Face + Voice)..."):
+                    # 1. Face Analysis
+                    face_detected_ids = set()
+                    if dual_photo:
+                        dual_photo.seek(0)
+                        d_img_np = np.array(Image.open(dual_photo).convert("RGB"))
+                        d_detected, _, num_faces = predict_attendance(d_img_np, tolerance=0.58)
+                        if d_detected:
+                            face_detected_ids = {int(sid) for sid in d_detected.keys()}
+
+                    # 2. Voice Analysis
+                    voice_detected_ids = set()
+                    if dual_audio:
+                        dual_audio.seek(0)
+                        candidates_dict = {
+                            s['students']['student_id']: s['students']['voice_embedding']
+                            for s in enrolled_students if s.get('students') and s['students'].get('voice_embedding')
+                        }
+                        if candidates_dict:
+                            v_scores = process_bulk_audio(dual_audio.read(), candidates_dict)
+                            voice_detected_ids = {sid for sid, score in v_scores.items() if score > 0}
+
+                    # 3. Combine Results
+                    results, attendance_to_log = [], []
+                    current_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+                    for node in enrolled_students:
+                        student = node.get('students')
+                        if not student:
+                            continue
+                        sid = int(student['student_id'])
+                        by_face = sid in face_detected_ids
+                        by_voice = sid in voice_detected_ids
+                        is_present = by_face or by_voice
+
+                        if by_face and by_voice:
+                            source_tag = "FaceID + Voice"
+                        elif by_face:
+                            source_tag = "FaceID"
+                        elif by_voice:
+                            source_tag = "Voice"
+                        else:
+                            source_tag = "-"
+
+                        results.append({
+                            "Name": student['name'],
+                            "ID": student['student_id'],
+                            "Source": source_tag,
+                            "Status": "✅ Present" if is_present else "❌ Absent"
+                        })
+
+                        attendance_to_log.append({
+                            'student_id': student['student_id'],
+                            'subject_id': selected_subject_id,
+                            'timestamp': current_timestamp,
+                            'is_present': bool(is_present)
+                        })
+
+                    if results:
+                        attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
 
 
 
