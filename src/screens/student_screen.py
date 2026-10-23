@@ -18,17 +18,35 @@ from src.components.subject_card import subject_card
 from src.database.config import supabase
 
 
-@st.dialog("📸 Enhance / Update FaceID")
+@st.dialog("📸 Enhance FaceID & 🎙️ Voice Profile")
 def enhance_face_dialog(student_id):
-    st.write("Add an extra photo (different angle, classroom lighting, or mobile selfie) so AI recognizes you under any condition!")
+    st.write("Calibrate your profile for different camera angles, classroom lighting, or this laptop's microphone!")
 
-    enh_tab1, enh_tab2 = st.tabs(["📁 Upload Photo", "📸 Live Camera"])
+    enh_tab1, enh_tab2, enh_tab3 = st.tabs(["📁 Upload Photo", "📸 Live Camera", "🎙️ Calibrate Voice"])
     up_file = None
     cam_file = None
     with enh_tab1:
         up_file = st.file_uploader("Upload selfie or photo", type=['jpg', 'jpeg', 'png'], key="enh_face_up")
     with enh_tab2:
         cam_file = st.camera_input("Take photo", key="enh_face_cam")
+    with enh_tab3:
+        st.caption("Record 5-10s from this laptop's microphone (*'Hello, my name is... and I am present'*):")
+        enh_voice = st.audio_input("Record Voice Sample", key="enh_voice_rec")
+        if enh_voice:
+            if st.button("🎙️ Save Voice Profile for this Device", type="primary", width="stretch"):
+                with st.spinner("Extracting voice features..."):
+                    try:
+                        enh_voice.seek(0)
+                        v_emb = get_voice_embedding(enh_voice.read())
+                        if v_emb:
+                            supabase.table('students').update({'voice_embedding': v_emb}).eq('student_id', student_id).execute()
+                            st.toast("Voice profile updated for this microphone!", icon="🎙️")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("Could not extract voice features. Please speak clearly into the microphone.")
+                    except Exception as ve:
+                        st.error(f"Voice error: {ve}")
 
     photo = up_file if up_file is not None else cam_file
     if photo:
@@ -92,7 +110,7 @@ def student_dashboard():
         if st.button('Enroll in Subject', type='primary', width='stretch'):
             enroll_dialog()
     with c3:
-        if st.button('📸 Enhance FaceID', type='secondary', width='stretch'):
+        if st.button('⚙️ Enhance Profile', type='secondary', width='stretch'):
             enhance_face_dialog(student_id)
 
     st.divider()
