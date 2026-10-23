@@ -129,16 +129,18 @@ def teacher_tab_take_attendance():
         st.subheader("Face Recognition Attendance")
         st.caption("Upload classroom photos or capture a live webcam photo to recognize and mark all students present.")
 
-        f_col1, f_col2 = st.columns(2)
-        with f_col1:
+        face_sub_tab1, face_sub_tab2 = st.tabs([
+            "📁 Upload Classroom Photo(s)",
+            "📸 Take Live Classroom Photo"
+        ])
+        with face_sub_tab1:
             face_uploaded_files = st.file_uploader(
                 "Upload classroom photo(s)",
                 type=['jpg', 'jpeg', 'png'],
                 accept_multiple_files=True,
                 key="teacher_face_upload"
             )
-        with f_col2:
-            st.caption("Or capture directly from classroom webcam:")
+        with face_sub_tab2:
             face_cam_file = st.camera_input("Take Live Classroom Photo", key="teacher_face_cam")
 
         all_face_images = []
@@ -258,19 +260,23 @@ def teacher_tab_take_attendance():
         st.subheader("⚡ Combined Attendance (Face + Voice)")
         st.caption("Take classroom photo(s) AND record audio in one session. Students recognized by EITHER Face OR Voice will be marked Present!")
 
-        d_col1, d_col2 = st.columns(2)
+        d_col1, d_col2 = st.columns(2, gap="large")
         with d_col1:
             st.markdown("##### 📸 Step 1: Classroom Photo")
-            dual_photo_upload = st.file_uploader(
-                "Upload classroom photo",
-                type=['jpg', 'jpeg', 'png'],
-                key="dual_att_photo"
-            )
-            dual_cam_photo = st.camera_input("Or take live snapshot", key="dual_att_cam")
+            dual_photo_tabs = st.tabs(["📁 Upload Photo", "📸 Live Webcam"])
+            with dual_photo_tabs[0]:
+                dual_photo_upload = st.file_uploader(
+                    "Upload classroom photo",
+                    type=['jpg', 'jpeg', 'png'],
+                    key="dual_att_photo"
+                )
+            with dual_photo_tabs[1]:
+                dual_cam_photo = st.camera_input("Take live snapshot", key="dual_att_cam")
             dual_photo = dual_photo_upload if dual_photo_upload is not None else dual_cam_photo
 
         with d_col2:
             st.markdown("##### 🎙️ Step 2: Classroom Audio")
+            st.caption("Record classroom audio of students speaking or answering attendance.")
             dual_audio = st.audio_input("Record classroom audio / roll call", key="dual_att_audio")
 
         dual_ready = (dual_photo is not None) or (dual_audio is not None)
