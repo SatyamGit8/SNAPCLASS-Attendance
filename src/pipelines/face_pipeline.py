@@ -213,9 +213,16 @@ def predict_attendance(class_image_np, tolerance=0.60, enrolled_student_ids=None
     resemblance_threshold = tolerance
 
     for encoding in encodings:
+        enc_arr = np.asarray(encoding, dtype=np.float64)
+        if enc_arr.shape != (128,):
+            continue
+
         dists = []
         for sid, k_emb in zip(y_train, X_train):
-            d = float(np.linalg.norm(k_emb - encoding))
+            k_arr = np.asarray(k_emb, dtype=np.float64)
+            if k_arr.shape != (128,):
+                continue
+            d = float(np.linalg.norm(k_arr - enc_arr))
             dists.append((d, int(sid)))
 
         if dists:

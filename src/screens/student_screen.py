@@ -41,13 +41,17 @@ def enhance_face_dialog(student_id):
                     if not embs:
                         st.error("No face detected. Please ensure good lighting and face clearly visible.")
                     else:
-                        new_emb = embs[0].tolist()
+                        new_emb = np.array(embs[0], dtype=np.float64)
                         res = supabase.table('students').select('face_embedding').eq('student_id', student_id).execute()
                         curr = (res.data[0].get('face_embedding') or []) if res.data else []
-                        combined = curr + new_emb
-                        supabase.table('students').update({'face_embedding': combined}).eq('student_id', student_id).execute()
+                        if curr and len(curr) >= 128:
+                            curr_arr = np.array(curr[:128], dtype=np.float64)
+                            merged = ((curr_arr + new_emb) / 2.0).tolist()
+                        else:
+                            merged = new_emb.tolist()
+                        supabase.table('students').update({'face_embedding': merged}).eq('student_id', student_id).execute()
                         train_classifier()
-                        st.toast("Extra face profile added! Recognition accuracy enhanced!", icon="🎉")
+                        st.toast("FaceID angle merged! Recognition accuracy enhanced!", icon="🎉")
                         time.sleep(1)
                         st.rerun()
         with c2:
