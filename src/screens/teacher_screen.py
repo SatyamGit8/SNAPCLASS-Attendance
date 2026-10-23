@@ -10,7 +10,7 @@ from src.components.dialog_create_subject import create_subject_dialog
 from src.components.dialog_share_subject import share_subject_dialog
 from src.components.dialog_add_photo import add_photos_dialog
 
-from src.pipelines.face_pipeline import predict_attendance
+from src.pipelines.face_pipeline import predict_attendance, load_and_orient_image
 from src.components.dialog_attendance_results import attendance_result_dialog
 import numpy as np
 
@@ -144,11 +144,9 @@ def teacher_tab_take_attendance():
         all_face_images = []
         if face_uploaded_files:
             for f in face_uploaded_files:
-                f.seek(0)
-                all_face_images.append(Image.open(f).convert("RGB"))
+                all_face_images.append(load_and_orient_image(f))
         if face_cam_file:
-            face_cam_file.seek(0)
-            all_face_images.append(Image.open(face_cam_file).convert("RGB"))
+            all_face_images.append(load_and_orient_image(face_cam_file))
 
         if all_face_images:
             st.info(f"📊 **{len(all_face_images)}** photo(s) ready for Face Analysis.")
@@ -285,8 +283,7 @@ def teacher_tab_take_attendance():
                     # 1. Face Analysis
                     face_detected_ids = set()
                     if dual_photo:
-                        dual_photo.seek(0)
-                        d_img_np = np.array(Image.open(dual_photo).convert("RGB"))
+                        d_img_np = load_and_orient_image(dual_photo)
                         d_detected, _, num_faces = predict_attendance(d_img_np, tolerance=0.58)
                         if d_detected:
                             face_detected_ids = {int(sid) for sid in d_detected.keys()}

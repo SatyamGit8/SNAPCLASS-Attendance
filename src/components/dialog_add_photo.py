@@ -1,5 +1,6 @@
 import streamlit as st
 from PIL import Image
+from src.pipelines.face_pipeline import load_and_orient_image
 
 
 @st.dialog("Add Classroom Group Photos")
@@ -23,8 +24,8 @@ def add_photos_dialog():
         if st.button("➕ Add Photos to Analysis Batch", type="primary", disabled=not uploaded_files, width="stretch"):
             count = 0
             for f in uploaded_files:
-                f.seek(0)
-                img = Image.open(f).convert("RGB")
+                img_np = load_and_orient_image(f)
+                img = Image.fromarray(img_np)
                 st.session_state.attendance_images.append(img)
                 count += 1
             st.toast(f"{count} classroom photo(s) added successfully!", icon="✅")
@@ -35,8 +36,8 @@ def add_photos_dialog():
         cam_photo = st.camera_input("Capture Classroom Photo", key="cam_classroom_snapshot")
         if cam_photo:
             if st.button("➕ Add This Snapshot", type="primary", width="stretch"):
-                cam_photo.seek(0)
-                img = Image.open(cam_photo).convert("RGB")
+                img_np = load_and_orient_image(cam_photo)
+                img = Image.fromarray(img_np)
                 st.session_state.attendance_images.append(img)
                 st.toast("Snapshot added to batch!", icon="📸")
                 st.rerun()

@@ -32,11 +32,51 @@ if not hasattr(pkg_resources, "get_distribution"):
         return _DummyDistribution(dist_name)
     pkg_resources.get_distribution = _get_distribution
 
+from PIL import Image, ImageOps
 import dlib
 import numpy as np
 import face_recognition_models
 import streamlit as st
 from src.database.db import get_all_students
+
+
+def load_and_orient_image(file_or_bytes_or_img, max_dim=1280):
+    """
+    Safely loads an image file/stream/bytes/Image, automatically corrects smartphone
+    EXIF orientation (portrait vs landscape), downscales huge phone photos,
+    and returns a clean, C-contiguous RGB numpy array.
+    """
+    if isinstance(file_or_bytes_or_img, np.ndarray):
+        img_np = file_or_bytes_or_img
+        if img_np.ndim == 2:
+            img_np = np.stack([img_np] * 3, axis=-1)
+        elif img_np.shape[2] == 4:
+            img_np = img_np[:, :, :3]
+        return np.ascontiguousarray(img_np, dtype=np.uint8)
+
+    if isinstance(file_or_bytes_or_img, Image.Image):
+        img = file_or_bytes_or_img
+    else:
+        if hasattr(file_or_bytes_or_img, 'seek'):
+            file_or_bytes_or_img.seek(0)
+        img = Image.open(file_or_bytes_or_img)
+
+    # 1. Correct smartphone EXIF rotation (fixes sideways/upside-down phone photos)
+    try:
+        img = ImageOps.exif_transpose(img)
+    except Exception:
+        pass
+
+    img = img.convert('RGB')
+
+    # 2. Downscale huge phone images to prevent slow detection / memory issues
+    w, h = img.size
+    if max(w, h) > max_dim:
+        scale = max_dim / max(w, h)
+        new_w, new_h = max(1, int(w * scale)), max(1, int(h * scale))
+        img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    return np.ascontiguousarray(np.array(img), dtype=np.uint8)
 
 
 @st.cache_resource
@@ -55,16 +95,39 @@ def load_dlib_models():
 
 
 def get_face_embeddings(image_np):
+    """
+    Detects faces and computes 128-d face descriptors.
+    Includes automatic multi-orientation fallback (0°, 90°, 270°, 180°)
+    to guarantee phone camera selfies taken sideways are properly recognized.
+    """
     detector, sp, facerec = load_dlib_models()
-    # Upsample by 1 to detect classroom faces; if none found, try upsample 2 for distant faces
-    faces = detector(image_np, 1)
+
+    if not isinstance(image_np, np.ndarray):
+        image_np = load_and_orient_image(image_np)
+    elif not image_np.flags['C_CONTIGUOUS']:
+        image_np = np.ascontiguousarray(image_np)
+
+    working_img = image_np
+    faces = detector(working_img, 1)
     if len(faces) == 0:
-        faces = detector(image_np, 2)
+        faces = detector(working_img, 2)
+
+    # If no face found in default orientation, test other rotations (common on smartphones)
+    if len(faces) == 0:
+        for k in [1, 3, 2]:
+            rotated = np.ascontiguousarray(np.rot90(image_np, k))
+            r_faces = detector(rotated, 1)
+            if len(r_faces) == 0:
+                r_faces = detector(rotated, 2)
+            if len(r_faces) > 0:
+                faces = r_faces
+                working_img = rotated
+                break
 
     encodings = []
     for face in faces:
-        shape = sp(image_np, face)
-        face_descriptor = facerec.compute_face_descriptor(image_np, shape, 1)
+        shape = sp(working_img, face)
+        face_descriptor = facerec.compute_face_descriptor(working_img, shape, 1)
         encodings.append(np.array(face_descriptor))
     return encodings
 

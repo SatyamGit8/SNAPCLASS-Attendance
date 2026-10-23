@@ -6,7 +6,7 @@ from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
 from PIL import Image
 import numpy as np
-from src.pipelines.face_pipeline import predict_attendance, get_face_embeddings, train_classifier
+from src.pipelines.face_pipeline import predict_attendance, get_face_embeddings, train_classifier, load_and_orient_image
 from src.pipelines.voice_pipeline import get_voice_embedding
 from src.database.db import get_all_students, create_student, get_student_subjects, get_student_attendance, unenroll_student_to_subject
 import time
@@ -148,9 +148,15 @@ def student_screen():
         login_cam = None
 
         with login_tabs[0]:
+            st.caption("💡 **Mobile:** Yahan tap karke aap seedhe apne phone ke Camera se selfie le sakte hain ya gallery se photo chun sakte hain.")
             login_upload = st.file_uploader("Upload selfie or photo", type=['jpg', 'jpeg', 'png'], key="login_face_upload")
         with login_tabs[1]:
-            st.info("📷 **Camera Permission:** Agar camera block hai, to browser ke address bar me upar right side me **Camera icon (red cross)** par click karke **'Always allow'** karein aur page reload karein.")
+            st.info(
+                "📷 **Camera Enable Guide:**\n\n"
+                "- 📱 **Mobile Users (Chrome/Edge):** Upar address bar me baayein (left) taraf bane **`⊸` (Tune)** ya **`🔒` (Lock)** icon par tap karein ➔ **Permissions** ➔ **Camera: Allow** karein aur page reload karein.\n"
+                "- 💻 **Laptop Users:** Address bar me upar right side me **Camera icon (red cross)** par click karke **Always allow** karein.\n"
+                "- 💡 **Easy Mobile Option:** Agar live webcam stream na khule, to pehle tab **'📸 Take Selfie / Upload Photo'** par tap karein — wahan se phone camera seedhe chalega!"
+            )
             try:
                 login_cam = st.camera_input("Position face in center", key="login_face_cam")
             except Exception:
@@ -160,18 +166,18 @@ def student_screen():
 
         if login_photo:
             try:
-                login_photo.seek(0)
-                img = np.array(Image.open(login_photo).convert('RGB'))
+                img = load_and_orient_image(login_photo)
             except Exception as e:
                 st.error(f"Error reading image: {e}")
                 img = None
 
             if img is not None:
                 with st.spinner('Verifying your FaceID...'):
-                    detected, all_ids, num_faces = predict_attendance(img)
+                    # Standard 0.60 tolerance for 1-person selfie verification (LFW benchmark)
+                    detected, all_ids, num_faces = predict_attendance(img, tolerance=0.60)
 
                     if num_faces == 0:
-                        st.warning('Face not found! Please ensure your face is well-lit and facing the camera.')
+                        st.warning('Face not found! Please ensure your face is well-lit, clearly visible and facing the camera.')
                     elif num_faces > 1:
                         st.warning('Multiple faces detected. Please upload a photo with only one person.')
                     elif detected:
@@ -202,9 +208,15 @@ def student_screen():
         reg_cam = None
 
         with reg_tabs[0]:
+            st.caption("💡 **Mobile:** Yahan tap karke phone camera se selfie lein ya gallery se photo upload karein.")
             reg_upload = st.file_uploader("Upload your face photo", type=['jpg', 'jpeg', 'png'], key="reg_face_upload")
         with reg_tabs[1]:
-            st.info("📷 **Camera Enable Guide:** Agar upar 'This app would like to use your camera' aa raha hai, to browser ke address bar me upar right side me **Camera icon (red cross)** par click karein, **'Always allow'** select karein aur page reload (F5) karein.")
+            st.info(
+                "📷 **Camera Enable Guide:**\n\n"
+                "- 📱 **Mobile Users (Chrome/Edge):** Upar address bar me baayein (left) taraf bane **`⊸` (Tune)** ya **`🔒` (Lock)** icon par tap karein ➔ **Permissions** ➔ **Camera: Allow** karein aur page reload karein.\n"
+                "- 💻 **Laptop Users:** Address bar me upar right side me **Camera icon (red cross)** par click karke **Always allow** karein.\n"
+                "- 💡 **Easy Mobile Option:** Agar live webcam stream na khule, to pehle tab **'📸 Take Selfie / Upload Photo'** par tap karein — wahan se phone camera seedhe chalega!"
+            )
             try:
                 reg_cam = st.camera_input("Capture face photo", key="reg_face_cam")
             except Exception:
@@ -233,9 +245,14 @@ def student_screen():
                 st.warning("Please upload or capture your face photo!")
             else:
                 with st.spinner("Creating profile & extracting facial features..."):
-                    reg_photo.seek(0)
-                    img = np.array(Image.open(reg_photo).convert('RGB'))
-                    encodings = get_face_embeddings(img)
+                    try:
+                        img = load_and_orient_image(reg_photo)
+                    except Exception as e:
+                        st.error(f"Error reading image: {e}")
+                        img = None
+
+                    if img is not None:
+                        encodings = get_face_embeddings(img)
 
                     if not encodings:
                         st.error("Could not detect any face in the photo. Please make sure your face is clearly visible and well-lit.")
