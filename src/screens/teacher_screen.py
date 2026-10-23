@@ -164,15 +164,17 @@ def teacher_tab_take_attendance():
                 with st.spinner("Scanning classroom photo(s) for student faces..."):
                     all_detected_ids = {}
                     total_faces_found = 0
+                    enrolled_sids = [int(n['students']['student_id']) for n in enrolled_students if n.get('students')]
 
                     for idx, img in enumerate(all_face_images):
                         img_np = np.array(img)
-                        detected, _, num_faces = predict_attendance(img_np, tolerance=0.58)
+                        detected, _, num_faces = predict_attendance(img_np, tolerance=0.60, enrolled_student_ids=enrolled_sids)
                         total_faces_found += num_faces
 
                         if detected:
-                            for sid in detected.keys():
-                                all_detected_ids.setdefault(int(sid), []).append(f"Photo {idx+1}")
+                            for sid, match_dist in detected.items():
+                                match_pct = max(10, min(99, int(round((1.0 - match_dist / 0.60) * 100))))
+                                all_detected_ids.setdefault(int(sid), []).append(f"Photo {idx+1} ({match_pct}% match)")
 
                     if total_faces_found == 0:
                         st.warning("⚠️ No faces detected in the provided photo(s). Please ensure faces are clearly lit and facing the camera.")
@@ -288,9 +290,10 @@ def teacher_tab_take_attendance():
                 with st.spinner("Running Multi-Modal AI Attendance (Face + Voice)..."):
                     # 1. Face Analysis
                     face_detected_ids = set()
+                    enrolled_sids = [int(n['students']['student_id']) for n in enrolled_students if n.get('students')]
                     if dual_photo:
                         d_img_np = load_and_orient_image(dual_photo)
-                        d_detected, _, num_faces = predict_attendance(d_img_np, tolerance=0.58)
+                        d_detected, _, num_faces = predict_attendance(d_img_np, tolerance=0.60, enrolled_student_ids=enrolled_sids)
                         if d_detected:
                             face_detected_ids = {int(sid) for sid in d_detected.keys()}
 

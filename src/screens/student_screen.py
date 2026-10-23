@@ -15,6 +15,55 @@ import pandas as pd
 
 from src.components.dialog_enroll import enroll_dialog
 from src.components.subject_card import subject_card
+from src.database.config import supabase
+
+
+@st.dialog("📸 Enhance / Update FaceID")
+def enhance_face_dialog(student_id):
+    st.write("Add an extra photo (different angle, classroom lighting, or mobile selfie) so AI recognizes you under any condition!")
+
+    enh_tab1, enh_tab2 = st.tabs(["📁 Upload Photo", "📸 Live Camera"])
+    up_file = None
+    cam_file = None
+    with enh_tab1:
+        up_file = st.file_uploader("Upload selfie or photo", type=['jpg', 'jpeg', 'png'], key="enh_face_up")
+    with enh_tab2:
+        cam_file = st.camera_input("Take photo", key="enh_face_cam")
+
+    photo = up_file if up_file is not None else cam_file
+    if photo:
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("➕ Add as Extra Angle (Recommended)", type="primary", width="stretch"):
+                with st.spinner("Processing facial features..."):
+                    img = load_and_orient_image(photo)
+                    embs = get_face_embeddings(img)
+                    if not embs:
+                        st.error("No face detected. Please ensure good lighting and face clearly visible.")
+                    else:
+                        new_emb = embs[0].tolist()
+                        res = supabase.table('students').select('face_embedding').eq('student_id', student_id).execute()
+                        curr = (res.data[0].get('face_embedding') or []) if res.data else []
+                        combined = curr + new_emb
+                        supabase.table('students').update({'face_embedding': combined}).eq('student_id', student_id).execute()
+                        train_classifier()
+                        st.toast("Extra face profile added! Recognition accuracy enhanced!", icon="🎉")
+                        time.sleep(1)
+                        st.rerun()
+        with c2:
+            if st.button("🔄 Replace Primary Photo", type="secondary", width="stretch"):
+                with st.spinner("Updating face profile..."):
+                    img = load_and_orient_image(photo)
+                    embs = get_face_embeddings(img)
+                    if not embs:
+                        st.error("No face detected. Please ensure good lighting and face clearly visible.")
+                    else:
+                        new_emb = embs[0].tolist()
+                        supabase.table('students').update({'face_embedding': new_emb}).eq('student_id', student_id).execute()
+                        train_classifier()
+                        st.toast("FaceID photo updated successfully!", icon="✅")
+                        time.sleep(1)
+                        st.rerun()
 
 
 def student_dashboard():
@@ -32,12 +81,15 @@ def student_dashboard():
 
     st.space()
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns([1.6, 1, 1], vertical_alignment='bottom')
     with c1:
         st.header('Your Enrolled Subjects')
     with c2:
         if st.button('Enroll in Subject', type='primary', width='stretch'):
             enroll_dialog()
+    with c3:
+        if st.button('📸 Enhance FaceID', type='secondary', width='stretch'):
+            enhance_face_dialog(student_id)
 
     st.divider()
 

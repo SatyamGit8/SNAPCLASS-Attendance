@@ -127,8 +127,9 @@ def get_face_embeddings(image_np):
     encodings = []
     for face in faces:
         shape = sp(working_img, face)
-        face_descriptor = facerec.compute_face_descriptor(working_img, shape, 1)
-        encodings.append(np.array(face_descriptor))
+        # Using 2 jitters for slightly perturbing & averaging descriptor (stabilizes tilted/angled poses)
+        face_descriptor = facerec.compute_face_descriptor(working_img, shape, 2)
+        encodings.append(np.array(face_descriptor, dtype=np.float64))
     return encodings
 
 
@@ -143,9 +144,25 @@ def get_trained_model():
 
     for student in student_db:
         embedding = student.get('face_embedding')
-        if embedding:
-            X.append(np.array(embedding))
-            y.append(student.get('student_id'))
+        sid = student.get('student_id')
+        if embedding is not None and sid is not None:
+            emb_arr = np.array(embedding, dtype=np.float64)
+            int_sid = int(sid)
+            # Case 1: Standard single 128-d vector
+            if emb_arr.ndim == 1 and len(emb_arr) == 128:
+                X.append(emb_arr)
+                y.append(int_sid)
+            # Case 2: Multi-embedding concatenated array (128 * N)
+            elif emb_arr.ndim == 1 and len(emb_arr) >= 128 and len(emb_arr) % 128 == 0:
+                num_sub = len(emb_arr) // 128
+                for k in range(num_sub):
+                    X.append(emb_arr[k*128:(k+1)*128])
+                    y.append(int_sid)
+            # Case 3: 2D array (N, 128)
+            elif emb_arr.ndim == 2 and emb_arr.shape[1] == 128:
+                for single_emb in emb_arr:
+                    X.append(single_emb)
+                    y.append(int_sid)
 
     if len(X) == 0:
         return None
@@ -159,11 +176,14 @@ def train_classifier():
     return bool(model_data)
 
 
-def predict_attendance(class_image_np, tolerance=0.58):
+def predict_attendance(class_image_np, tolerance=0.60, enrolled_student_ids=None):
     """
     Scans a classroom group photo or individual selfie, detects all faces,
     and matches them against registered student FaceID embeddings using
     nearest-neighbor 128-d Euclidean distance matching.
+
+    If enrolled_student_ids is passed, candidates are strictly scoped to
+    those enrolled students to avoid cross-class or duplicate identity errors.
     """
     encodings = get_face_embeddings(class_image_np)
     detected_student = {}
@@ -174,22 +194,40 @@ def predict_attendance(class_image_np, tolerance=0.58):
 
     X_train = model_data['X']
     y_train = model_data['y']
+
+    # Filter candidates strictly to enrolled students if specified
+    if enrolled_student_ids:
+        enrolled_set = {int(s) for s in enrolled_student_ids}
+        f_X, f_y = [], []
+        for x_emb, sid in zip(X_train, y_train):
+            if sid in enrolled_set:
+                f_X.append(x_emb)
+                f_y.append(sid)
+        if f_X:
+            X_train = f_X
+            y_train = f_y
+
     all_students = sorted(list(set(y_train)))
 
-    # Standard dlib 128-d Euclidean distance threshold (0.58 allows realistic classroom angles/lighting)
+    # Standard dlib 128-d Euclidean distance threshold (0.60 LFW benchmark)
     resemblance_threshold = tolerance
 
     for encoding in encodings:
-        best_sid = None
-        min_dist = float('inf')
-
+        dists = []
         for sid, k_emb in zip(y_train, X_train):
-            dist = float(np.linalg.norm(k_emb - encoding))
-            if dist < min_dist:
-                min_dist = dist
-                best_sid = sid
+            d = float(np.linalg.norm(k_emb - encoding))
+            dists.append((d, int(sid)))
 
-        if min_dist <= resemblance_threshold and best_sid is not None:
-            detected_student[int(best_sid)] = round(float(min_dist), 3)
+        if dists:
+            dists.sort()
+            min_dist = dists[0][0]
+            if min_dist <= resemblance_threshold:
+                # Match closest student, plus any near-identical profile (e.g. duplicate account for same person)
+                for d, sid in dists:
+                    if d <= resemblance_threshold and d <= min_dist + 0.025:
+                        curr_best = detected_student.get(sid, float('inf'))
+                        if d < curr_best:
+                            detected_student[sid] = round(d, 3)
 
     return detected_student, all_students, len(encodings)
+
