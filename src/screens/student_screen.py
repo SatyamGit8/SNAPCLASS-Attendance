@@ -274,7 +274,7 @@ def student_screen():
         st.markdown("<h3 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-bottom: 2px;'>Register New Profile (Face & Voice)</h3>", unsafe_allow_html=True)
         st.caption("Create your student profile with FaceID and optional Voice profile for seamless AI attendance.")
 
-        reg_name = st.text_input("Enter your full name", placeholder="E.g. Hamza Rizvi", key="reg_student_name")
+        reg_name = st.text_input("Enter your full name", placeholder="Satyam", key="reg_student_name")
 
         st.markdown("<h5 style='color: #EB459E; font-family: Outfit, sans-serif; font-weight: 700; margin-top: 12px; margin-bottom: 4px;'>📸 Face Registration</h5>", unsafe_allow_html=True)
         reg_tabs = st.tabs(["📸 Take Selfie / Upload Photo", "🎥 Live Webcam"])
